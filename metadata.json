@@ -1,0 +1,6 @@
+{
+  "name": "Web Browser",
+  "description": "A modern, high-performance web browser featuring tab management, WebRTC support, fullscreen video playback with smart orientation, bookmarks, history, and downloads.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
