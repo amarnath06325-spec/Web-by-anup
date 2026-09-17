@@ -30,7 +30,19 @@ object WebViewManager {
                 cacheMode = if (isIncognito) WebSettings.LOAD_NO_CACHE else WebSettings.LOAD_DEFAULT
                 saveFormData = !isIncognito
 
-                // Multimedia and Video Playback (HTML5, MP4, HLS, YouTube)
+                // Support Multiple Windows & Popups for Google Sign-In & OAuth
+                setSupportMultipleWindows(true)
+                javaScriptCanOpenWindowsAutomatically = true
+
+                // Sanitize User-Agent for Google OAuth & Google Account Chooser
+                // Stripping '; wv' and 'Version/4.0 ' prevents Google's 403: disallowed_useragent block
+                val defaultUa = userAgentString ?: ""
+                val cleanUa = defaultUa
+                    .replace("; wv", "")
+                    .replace("Version/4.0 ", "")
+                userAgentString = cleanUa
+
+                // Multimedia and Video Playback (HTML5, MP4, HLS, YouTube, WebRTC)
                 mediaPlaybackRequiresUserGesture = false
 
                 // Viewport and scaling
@@ -51,14 +63,15 @@ object WebViewManager {
                 defaultTextEncodingName = "utf-8"
             }
 
-            // Cookie Manager setup
+            // Persistent Cookie Manager setup (permanent login & session cookies)
             val webViewInstance = this
             CookieManager.getInstance().apply {
+                setAcceptCookie(true)
                 if (isIncognito) {
                     setAcceptThirdPartyCookies(webViewInstance, false)
                 } else {
-                    setAcceptCookie(true)
                     setAcceptThirdPartyCookies(webViewInstance, true)
+                    flush()
                 }
             }
 

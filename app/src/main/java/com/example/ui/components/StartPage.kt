@@ -134,7 +134,7 @@ fun StartPage(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = if (isIncognito) "You've gone Incognito" else "Flow Browser",
+                text = if (isIncognito) "You've gone Incognito" else "Anup Web",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
@@ -176,7 +176,7 @@ fun StartPage(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Flow Browser won't save:",
+                                text = "Anup Web won't save:",
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp,
                                 color = Color.White

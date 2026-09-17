@@ -113,9 +113,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Handle Back Press Gracefully
+                // Handle Back Press Gracefully (Checks WebView history before exiting)
                 BackHandler(enabled = true) {
                     when {
+                        viewModel.popupWebView.value != null -> {
+                            viewModel.dismissPopupWebView()
+                        }
                         viewModel.fullscreenCustomView.value != null -> {
                             viewModel.hideFullscreenView()
                         }
@@ -134,7 +137,7 @@ class MainActivity : ComponentActivity() {
                         viewModel.showFindInPage.value -> {
                             viewModel.closeFindInPage()
                         }
-                        currentTab?.canGoBack == true -> {
+                        currentTab?.canGoBack == true || currentTab?.webView?.canGoBack() == true -> {
                             viewModel.goBack()
                         }
                         else -> {
@@ -149,6 +152,34 @@ class MainActivity : ComponentActivity() {
                         onRequestSystemPermissions = { requestAllBrowserPermissions() }
                     )
                 }
+            }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        viewModel.currentTab?.let { tab ->
+            if (tab.url.isNotBlank() && !tab.isIncognito) {
+                outState.putString("SAVED_ACTIVE_URL", tab.url)
+                viewModel.saveActiveUrlManually(tab.url)
+            }
+        }
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        val savedUrl = savedInstanceState.getString("SAVED_ACTIVE_URL")
+        if (!savedUrl.isNullOrBlank() && savedUrl != "about:blank") {
+            viewModel.loadUrl(savedUrl)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        android.webkit.CookieManager.getInstance().flush()
+        viewModel.currentTab?.let { tab ->
+            if (tab.url.isNotBlank() && !tab.isIncognito) {
+                viewModel.saveActiveUrlManually(tab.url)
             }
         }
     }

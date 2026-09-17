@@ -6,14 +6,17 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,38 +71,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.engine.BrowserTabState
 
+/**
+ * Top Search / URL Bar
+ * Positioned comfortably slightly lower from the top edge and status bar.
+ */
 @Composable
-fun AddressBar(
+fun TopSearchBar(
     tabState: BrowserTabState?,
-    tabCount: Int,
-    isBookmarked: Boolean,
-    isBottomBar: Boolean,
     onLoadUrl: (String) -> Unit,
     onReload: () -> Unit,
     onStopLoading: () -> Unit,
-    onGoBack: () -> Unit,
-    onGoForward: () -> Unit,
-    onGoHome: () -> Unit,
-    onToggleBookmark: () -> Unit,
-    onOpenTabSwitcher: () -> Unit,
-    onOpenBookmarks: () -> Unit,
-    onOpenHistory: () -> Unit,
-    onOpenDownloads: () -> Unit,
-    onToggleDesktopMode: () -> Unit,
-    onOpenFindInPage: () -> Unit,
-    onToggleBarPosition: () -> Unit,
-    onOpenNewTab: () -> Unit,
-    onOpenNewIncognitoTab: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var textInput by remember { mutableStateOf("") }
-    var showMenu by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val isIncognito = tabState?.isIncognito == true
 
-    // Sync input text when active tab changes, unless currently typing
     LaunchedEffect(tabState?.displayUrl) {
         if (!isEditing) {
             textInput = tabState?.displayUrl.orEmpty()
@@ -108,30 +97,21 @@ fun AddressBar(
 
     Surface(
         color = if (isIncognito) Color(0xFF131926) else MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 4.dp,
+        shadowElevation = 2.dp,
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Loading progress indicator
-            if (tabState?.isLoading == true) {
-                LinearProgressIndicator(
-                    progress = { tabState.progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp),
-                    color = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.primary,
-                    trackColor = if (isIncognito) Color(0xFF1E293B) else MaterialTheme.colorScheme.surfaceContainerHighest
-                )
-            } else {
-                Spacer(modifier = Modifier.height(3.dp))
-            }
-
-            // Main Address input & top action buttons
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(top = 10.dp, bottom = 6.dp) // Lowered slightly from top
+        ) {
+            // Main Address input bar
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .padding(horizontal = 12.dp)
             ) {
                 // Address input pill
                 Box(
@@ -150,7 +130,7 @@ fun AddressBar(
                             isEditing = true
                             focusRequester.requestFocus()
                         }
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 14.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Row(
@@ -207,7 +187,7 @@ fun AddressBar(
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
 
                         // Text Field
                         BasicTextField(
@@ -296,35 +276,179 @@ fun AddressBar(
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.width(6.dp))
-
-                // Tab Switcher Button with Badge
-                Box(
-                    contentAlignment = Alignment.Center,
+            // Loading progress indicator
+            if (tabState?.isLoading == true) {
+                Spacer(modifier = Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress = { tabState.progress },
                     modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isIncognito) Color(0xFF1E2638) else Color.Transparent)
-                        .border(
-                            width = 1.5.dp,
-                            color = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .clickable(onClick = onOpenTabSwitcher)
-                        .testTag("tab_switcher_button")
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.primary,
+                    trackColor = if (isIncognito) Color(0xFF1E293B) else MaterialTheme.colorScheme.surfaceContainerHighest
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Bottom Navigation Bar ("home back wale tab")
+ * Sits at the absolute bottom of the screen with Back, Forward, Home, Bookmarks, Tab Switcher, and Menu.
+ */
+@Composable
+fun BrowserBottomBar(
+    tabState: BrowserTabState?,
+    tabCount: Int,
+    isBookmarked: Boolean,
+    onGoBack: () -> Unit,
+    onGoForward: () -> Unit,
+    onGoHome: () -> Unit,
+    onToggleBookmark: () -> Unit,
+    onOpenTabSwitcher: () -> Unit,
+    onOpenBookmarks: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenDownloads: () -> Unit,
+    onToggleDesktopMode: () -> Unit,
+    onOpenFindInPage: () -> Unit,
+    onOpenNewTab: () -> Unit,
+    onOpenNewIncognitoTab: () -> Unit,
+    onReload: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    val isIncognito = tabState?.isIncognito == true
+
+    Surface(
+        color = if (isIncognito) Color(0xFF131926) else MaterialTheme.colorScheme.surfaceContainer,
+        shadowElevation = 8.dp,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding() // Sits at the absolute bottom edge
+        ) {
+            HorizontalDivider(
+                color = if (isIncognito) Color(0xFF1E293B) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                thickness = 0.5.dp
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .padding(horizontal = 4.dp)
+            ) {
+                // 1. Back Button
+                IconButton(
+                    onClick = onGoBack,
+                    enabled = tabState?.canGoBack == true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("nav_back_button")
                 ) {
-                    Text(
-                        text = tabCount.toString(),
-                        color = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (tabState?.canGoBack == true) {
+                            if (isIncognito) Color.White else MaterialTheme.colorScheme.onSurface
+                        } else {
+                            (if (isIncognito) Color.White else MaterialTheme.colorScheme.onSurface).copy(alpha = 0.35f)
+                        }
                     )
                 }
 
-                // Overflow Menu
-                Box {
+                // 2. Forward Button
+                IconButton(
+                    onClick = onGoForward,
+                    enabled = tabState?.canGoForward == true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("nav_forward_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Forward",
+                        tint = if (tabState?.canGoForward == true) {
+                            if (isIncognito) Color.White else MaterialTheme.colorScheme.onSurface
+                        } else {
+                            (if (isIncognito) Color.White else MaterialTheme.colorScheme.onSurface).copy(alpha = 0.35f)
+                        }
+                    )
+                }
+
+                // 3. Home Button
+                IconButton(
+                    onClick = onGoHome,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("nav_home_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = "Home",
+                        tint = if (isIncognito) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // 4. Bookmark Button
+                IconButton(
+                    onClick = onToggleBookmark,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("nav_bookmark_button")
+                ) {
+                    Icon(
+                        imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                        contentDescription = if (isBookmarked) "Remove bookmark" else "Bookmark page",
+                        tint = if (isBookmarked) {
+                            if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.primary
+                        } else {
+                            if (isIncognito) Color.White else MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                }
+
+                // 5. Tab Switcher Button (with numerical badge)
+                Box(
+                    modifier = Modifier
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isIncognito) Color(0xFF1E2638) else MaterialTheme.colorScheme.surfaceVariant)
+                            .border(
+                                width = 1.5.dp,
+                                color = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.outline,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .clickable(onClick = onOpenTabSwitcher)
+                            .testTag("tab_switcher_button")
+                    ) {
+                        Text(
+                            text = tabCount.toString(),
+                            color = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                // 6. Overflow Menu Button
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
                     IconButton(
                         onClick = { showMenu = true },
                         modifier = Modifier.testTag("overflow_menu_button")
@@ -332,7 +456,7 @@ fun AddressBar(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "More options",
-                            tint = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (isIncognito) Color.White else MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -379,6 +503,13 @@ fun AddressBar(
                                 onToggleDesktopMode()
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text("Reload Page") },
+                            onClick = {
+                                showMenu = false
+                                onReload()
+                            }
+                        )
                         HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text("Bookmarks") },
@@ -409,74 +540,64 @@ fun AddressBar(
                                 onOpenFindInPage()
                             }
                         )
-                        DropdownMenuItem(
-                            text = {
-                                Text(if (isBottomBar) "Move Bar to Top" else "Move Bar to Bottom")
-                            },
-                            onClick = {
-                                showMenu = false
-                                onToggleBarPosition()
-                            }
-                        )
                     }
                 }
             }
-
-            // Bottom Navigation Toolbar (Back, Forward, Home, Bookmark, Tabs)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 2.dp)
-            ) {
-                IconButton(
-                    onClick = onGoBack,
-                    enabled = tabState?.canGoBack == true,
-                    modifier = Modifier.weight(1f).testTag("nav_back_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = if (tabState?.canGoBack == true) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    )
-                }
-
-                IconButton(
-                    onClick = onGoForward,
-                    enabled = tabState?.canGoForward == true,
-                    modifier = Modifier.weight(1f).testTag("nav_forward_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Forward",
-                        tint = if (tabState?.canGoForward == true) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    )
-                }
-
-                IconButton(
-                    onClick = onGoHome,
-                    modifier = Modifier.weight(1f).testTag("nav_home_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = "Home",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                IconButton(
-                    onClick = onToggleBookmark,
-                    modifier = Modifier.weight(1f).testTag("nav_bookmark_button")
-                ) {
-                    Icon(
-                        imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                        contentDescription = if (isBookmarked) "Remove bookmark" else "Bookmark page",
-                        tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
         }
+    }
+}
+
+/**
+ * Combined / Legacy AddressBar
+ */
+@Composable
+fun AddressBar(
+    tabState: BrowserTabState?,
+    tabCount: Int,
+    isBookmarked: Boolean,
+    isBottomBar: Boolean,
+    onLoadUrl: (String) -> Unit,
+    onReload: () -> Unit,
+    onStopLoading: () -> Unit,
+    onGoBack: () -> Unit,
+    onGoForward: () -> Unit,
+    onGoHome: () -> Unit,
+    onToggleBookmark: () -> Unit,
+    onOpenTabSwitcher: () -> Unit,
+    onOpenBookmarks: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenDownloads: () -> Unit,
+    onToggleDesktopMode: () -> Unit,
+    onOpenFindInPage: () -> Unit,
+    onToggleBarPosition: () -> Unit,
+    onOpenNewTab: () -> Unit,
+    onOpenNewIncognitoTab: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        TopSearchBar(
+            tabState = tabState,
+            onLoadUrl = onLoadUrl,
+            onReload = onReload,
+            onStopLoading = onStopLoading
+        )
+        BrowserBottomBar(
+            tabState = tabState,
+            tabCount = tabCount,
+            isBookmarked = isBookmarked,
+            onGoBack = onGoBack,
+            onGoForward = onGoForward,
+            onGoHome = onGoHome,
+            onToggleBookmark = onToggleBookmark,
+            onOpenTabSwitcher = onOpenTabSwitcher,
+            onOpenBookmarks = onOpenBookmarks,
+            onOpenHistory = onOpenHistory,
+            onOpenDownloads = onOpenDownloads,
+            onToggleDesktopMode = onToggleDesktopMode,
+            onOpenFindInPage = onOpenFindInPage,
+            onOpenNewTab = onOpenNewTab,
+            onOpenNewIncognitoTab = onOpenNewIncognitoTab,
+            onReload = onReload
+        )
     }
 }

@@ -29,11 +29,31 @@ class AppWebViewClient(
 
         // Handle external application schemes (tel, mailto, maps, intents)
         try {
+            if (scheme == "intent") {
+                val parsedIntent = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (parsedIntent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(parsedIntent)
+                    return true
+                }
+                // Handle fallback URL if app is not installed
+                val fallbackUrl = parsedIntent.getStringExtra("browser_fallback_url")
+                if (!fallbackUrl.isNullOrBlank()) {
+                    view?.loadUrl(fallbackUrl)
+                    return true
+                }
+                return true
+            }
+
             val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(intent)
-            return true
+            if (intent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(intent)
+                return true
+            }
+            return false
         } catch (_: Exception) {
             return false
         }

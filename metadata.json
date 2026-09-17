@@ -1,6 +1,6 @@
 {
-  "name": "Web Browser",
-  "description": "A modern, high-performance web browser featuring tab management, WebRTC support, fullscreen video playback with smart orientation, bookmarks, history, and downloads.",
+  "name": "Anup Web",
+  "description": "A modern, fast, and feature-rich Web Browser App named Anup Web featuring Chrome-style top address bar, Google OAuth support, session restore, video playback, and persistent logins.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

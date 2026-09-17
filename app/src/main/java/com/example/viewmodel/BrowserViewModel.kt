@@ -34,6 +34,7 @@ import java.io.File
 class BrowserViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: BrowserRepository
+    private val prefs = application.getSharedPreferences("anup_web_prefs", Context.MODE_PRIVATE)
 
     init {
         val database = BrowserDatabase.getDatabase(application)
@@ -49,16 +50,29 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     val downloads: StateFlow<List<DownloadEntity>> = repository.downloads
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    // Tabs Management
-    private val _tabs = MutableStateFlow<List<BrowserTabState>>(listOf(BrowserTabState()))
+    // Tabs Management with Session Restore from SharedPreferences
+    private val _tabs = MutableStateFlow<List<BrowserTabState>>(
+        run {
+            val restoredUrl = prefs.getString("last_active_url", null)
+            if (!restoredUrl.isNullOrBlank() && restoredUrl != "about:blank") {
+                listOf(BrowserTabState(url = restoredUrl, displayUrl = restoredUrl, title = restoredUrl))
+            } else {
+                listOf(BrowserTabState())
+            }
+        }
+    )
     val tabs: StateFlow<List<BrowserTabState>> = _tabs.asStateFlow()
 
     private val _currentTabIndex = MutableStateFlow(0)
     val currentTabIndex: StateFlow<Int> = _currentTabIndex.asStateFlow()
 
-    // Address bar positioning (true = bottom, false = top)
-    private val _isBottomBar = MutableStateFlow(true)
+    // Address bar positioning (false = top [Chrome style, default], true = bottom)
+    private val _isBottomBar = MutableStateFlow(false)
     val isBottomBar: StateFlow<Boolean> = _isBottomBar.asStateFlow()
+
+    // Multiple Windows / Google OAuth Popup WebView
+    private val _popupWebView = MutableStateFlow<WebView?>(null)
+    val popupWebView: StateFlow<WebView?> = _popupWebView.asStateFlow()
 
     // Fullscreen Video playback state
     private val _fullscreenCustomView = MutableStateFlow<View?>(null)
@@ -280,9 +294,35 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
         // Record history only for standard browsing
         val tab = _tabs.value.getOrNull(index)
         if (tab?.isIncognito != true) {
+            if (url.isNotBlank() && url != "about:blank") {
+                prefs.edit().putString("last_active_url", url).apply()
+            }
             viewModelScope.launch {
                 repository.recordHistory(pageTitle, url)
             }
+        }
+    }
+
+    fun setPopupWebView(webView: WebView?) {
+        _popupWebView.value = webView
+    }
+
+    fun dismissPopupWebView() {
+        val popup = _popupWebView.value
+        if (popup != null) {
+            WebViewManager.destroyWebView(popup, false)
+            _popupWebView.value = null
+            android.webkit.CookieManager.getInstance().flush()
+        }
+    }
+
+    fun getLastSavedUrl(): String? {
+        return prefs.getString("last_active_url", null)
+    }
+
+    fun saveActiveUrlManually(url: String) {
+        if (url.isNotBlank() && url != "about:blank") {
+            prefs.edit().putString("last_active_url", url).apply()
         }
     }
 

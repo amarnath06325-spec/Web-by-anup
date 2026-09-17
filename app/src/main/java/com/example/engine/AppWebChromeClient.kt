@@ -2,6 +2,7 @@ package com.example.engine
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Message
 import android.view.View
 import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
@@ -17,7 +18,9 @@ class AppWebChromeClient(
     private val onHideFullscreenView: () -> Unit,
     private val onWebPermissionRequest: (PermissionRequest) -> Unit,
     private val onGeolocationRequest: (String, GeolocationPermissions.Callback) -> Unit,
-    private val onFileChooser: (ValueCallback<Array<Uri>>?, FileChooserParams?) -> Boolean
+    private val onFileChooser: (ValueCallback<Array<Uri>>?, FileChooserParams?) -> Boolean,
+    private val onCreateWindowRequested: ((WebView?, Boolean, Boolean, Message?) -> Boolean)? = null,
+    private val onCloseWindowRequested: ((WebView?) -> Unit)? = null
 ) : WebChromeClient() {
 
     private var customViewCallback: CustomViewCallback? = null
@@ -75,5 +78,22 @@ class AppWebChromeClient(
         fileChooserParams: FileChooserParams?
     ): Boolean {
         return onFileChooser(filePathCallback, fileChooserParams)
+    }
+
+    override fun onCreateWindow(
+        view: WebView?,
+        isDialog: Boolean,
+        isUserGesture: Boolean,
+        resultMsg: Message?
+    ): Boolean {
+        if (onCreateWindowRequested != null && resultMsg != null) {
+            return onCreateWindowRequested.invoke(view, isDialog, isUserGesture, resultMsg)
+        }
+        return super.onCreateWindow(view, isDialog, isUserGesture, resultMsg)
+    }
+
+    override fun onCloseWindow(window: WebView?) {
+        super.onCloseWindow(window)
+        onCloseWindowRequested?.invoke(window)
     }
 }

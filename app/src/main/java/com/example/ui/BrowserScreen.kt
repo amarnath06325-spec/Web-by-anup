@@ -15,8 +15,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,12 +27,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -43,6 +47,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +62,8 @@ import com.example.engine.AppWebChromeClient
 import com.example.engine.AppWebViewClient
 import com.example.engine.WebViewManager
 import com.example.ui.components.AddressBar
+import com.example.ui.components.BrowserBottomBar
+import com.example.ui.components.TopSearchBar
 import com.example.ui.components.BookmarksHistorySheet
 import com.example.ui.components.DownloadsSheet
 import com.example.ui.components.FindInPageBar
@@ -124,56 +132,32 @@ fun BrowserScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (!isBottomBar) {
-                AddressBar(
-                    tabState = currentTab,
-                    tabCount = tabs.size,
-                    isBookmarked = isBookmarked,
-                    isBottomBar = false,
-                    onLoadUrl = { viewModel.loadUrl(it) },
-                    onReload = { viewModel.reload() },
-                    onStopLoading = { viewModel.stopLoading() },
-                    onGoBack = { viewModel.goBack() },
-                    onGoForward = { viewModel.goForward() },
-                    onGoHome = { viewModel.navigateHome() },
-                    onToggleBookmark = { viewModel.toggleBookmark() },
-                    onOpenTabSwitcher = { viewModel.openTabSwitcher() },
-                    onOpenBookmarks = { viewModel.openBookmarksHistory(0) },
-                    onOpenHistory = { viewModel.openBookmarksHistory(1) },
-                    onOpenDownloads = { viewModel.openDownloads() },
-                    onToggleDesktopMode = { viewModel.toggleDesktopMode() },
-                    onOpenFindInPage = { viewModel.openFindInPage() },
-                    onToggleBarPosition = { viewModel.toggleBarPosition() },
-                    onOpenNewTab = { viewModel.addNewTab() },
-                    onOpenNewIncognitoTab = { viewModel.openNewIncognitoTab() }
-                )
-            }
+            TopSearchBar(
+                tabState = currentTab,
+                onLoadUrl = { viewModel.loadUrl(it) },
+                onReload = { viewModel.reload() },
+                onStopLoading = { viewModel.stopLoading() }
+            )
         },
         bottomBar = {
-            if (isBottomBar) {
-                AddressBar(
-                    tabState = currentTab,
-                    tabCount = tabs.size,
-                    isBookmarked = isBookmarked,
-                    isBottomBar = true,
-                    onLoadUrl = { viewModel.loadUrl(it) },
-                    onReload = { viewModel.reload() },
-                    onStopLoading = { viewModel.stopLoading() },
-                    onGoBack = { viewModel.goBack() },
-                    onGoForward = { viewModel.goForward() },
-                    onGoHome = { viewModel.navigateHome() },
-                    onToggleBookmark = { viewModel.toggleBookmark() },
-                    onOpenTabSwitcher = { viewModel.openTabSwitcher() },
-                    onOpenBookmarks = { viewModel.openBookmarksHistory(0) },
-                    onOpenHistory = { viewModel.openBookmarksHistory(1) },
-                    onOpenDownloads = { viewModel.openDownloads() },
-                    onToggleDesktopMode = { viewModel.toggleDesktopMode() },
-                    onOpenFindInPage = { viewModel.openFindInPage() },
-                    onToggleBarPosition = { viewModel.toggleBarPosition() },
-                    onOpenNewTab = { viewModel.addNewTab() },
-                    onOpenNewIncognitoTab = { viewModel.openNewIncognitoTab() }
-                )
-            }
+            BrowserBottomBar(
+                tabState = currentTab,
+                tabCount = tabs.size,
+                isBookmarked = isBookmarked,
+                onGoBack = { viewModel.goBack() },
+                onGoForward = { viewModel.goForward() },
+                onGoHome = { viewModel.navigateHome() },
+                onToggleBookmark = { viewModel.toggleBookmark() },
+                onOpenTabSwitcher = { viewModel.openTabSwitcher() },
+                onOpenBookmarks = { viewModel.openBookmarksHistory(0) },
+                onOpenHistory = { viewModel.openBookmarksHistory(1) },
+                onOpenDownloads = { viewModel.openDownloads() },
+                onToggleDesktopMode = { viewModel.toggleDesktopMode() },
+                onOpenFindInPage = { viewModel.openFindInPage() },
+                onOpenNewTab = { viewModel.addNewTab() },
+                onOpenNewIncognitoTab = { viewModel.openNewIncognitoTab() },
+                onReload = { viewModel.reload() }
+            )
         },
         modifier = modifier.fillMaxSize()
     ) { paddingValues ->
@@ -342,6 +326,53 @@ fun BrowserScreen(
             onBlock = { viewModel.denyGeolocation(false) }
         )
     }
+
+    // Multiple Windows / Google OAuth Popup Dialog
+    val popupWebView by viewModel.popupWebView.collectAsState()
+    popupWebView?.let { pWv ->
+        Dialog(
+            onDismissRequest = { viewModel.dismissPopupWebView() },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Authentication / Sign In",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        IconButton(onClick = { viewModel.dismissPopupWebView() }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close window")
+                        }
+                    }
+                    AndroidView(
+                        factory = {
+                            pWv.apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -355,7 +386,7 @@ private fun WebViewHost(
     val tab = tabs.getOrNull(index)
 
     val webView = remember(index) {
-        val wv = tab?.webView ?: WebViewManager.createWebView(context) { downloadReq ->
+        val wv = tab?.webView ?: WebViewManager.createWebView(context, isIncognito = tab?.isIncognito == true) { downloadReq ->
             viewModel.handleDownloadRequest(downloadReq)
         }
 
@@ -378,6 +409,41 @@ private fun WebViewHost(
             onFileChooser = { callback, _ ->
                 viewModel.filePathCallback = callback
                 true
+            },
+            onCreateWindowRequested = { _, _, _, resultMsg ->
+                val popup = WebViewManager.createWebView(context, isIncognito = tab?.isIncognito == true) { downloadReq ->
+                    viewModel.handleDownloadRequest(downloadReq)
+                }
+                popup.webChromeClient = AppWebChromeClient(
+                    onProgressUpdate = {},
+                    onTitleUpdate = {},
+                    onIconUpdate = {},
+                    onShowFullscreenView = { _, _ -> },
+                    onHideFullscreenView = {},
+                    onWebPermissionRequest = { viewModel.setPendingWebPermission(it) },
+                    onGeolocationRequest = { o, c -> viewModel.setPendingGeolocation(o, c) },
+                    onFileChooser = { cb, _ ->
+                        viewModel.filePathCallback = cb
+                        true
+                    },
+                    onCloseWindowRequested = {
+                        viewModel.dismissPopupWebView()
+                    }
+                )
+                popup.webViewClient = AppWebViewClient(
+                    context = context,
+                    onPageStartedCallback = {},
+                    onPageFinishedCallback = { _, _, _, _, _ -> },
+                    onErrorReceived = {}
+                )
+                val transport = resultMsg?.obj as? WebView.WebViewTransport
+                transport?.webView = popup
+                resultMsg?.sendToTarget()
+                viewModel.setPopupWebView(popup)
+                true
+            },
+            onCloseWindowRequested = {
+                viewModel.dismissPopupWebView()
             }
         )
 
