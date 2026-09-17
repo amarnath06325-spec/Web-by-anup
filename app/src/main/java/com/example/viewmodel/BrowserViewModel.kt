@@ -358,7 +358,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
 
             trimmed.contains(".") && !trimmed.contains(" ") -> "https://$trimmed"
 
-            else -> "https://www.google.com/search?q=" + Uri.encode(trimmed)
+            else -> com.example.settings.BrowserSettingsManager.getSearchUrl(getApplication(), trimmed)
         }
 
         currentTab?.let { tab ->

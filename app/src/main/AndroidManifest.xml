@@ -76,6 +76,12 @@
             </intent-filter>
 
         </activity>
+
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:exported="false"
+            android:label="Settings"
+            android:theme="@style/Theme.MyApplication" />
     </application>
 
 </manifest>

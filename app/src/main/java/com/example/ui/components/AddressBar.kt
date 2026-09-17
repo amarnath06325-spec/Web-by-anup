@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Close
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
@@ -47,6 +49,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,6 +62,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -69,11 +73,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.example.auth.GoogleAuthManager
 import com.example.engine.BrowserTabState
 
 /**
  * Top Search / URL Bar
  * Positioned comfortably slightly lower from the top edge and status bar.
+ * Features Chrome UI style Google Profile Picture icon and 3-dot menu.
  */
 @Composable
 fun TopSearchBar(
@@ -81,13 +88,20 @@ fun TopSearchBar(
     onLoadUrl: (String) -> Unit,
     onReload: () -> Unit,
     onStopLoading: () -> Unit,
+    onProfileClick: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
+    onOpenNewTab: () -> Unit = {},
+    onOpenNewIncognitoTab: () -> Unit = {},
+    onClearData: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var textInput by remember { mutableStateOf("") }
+    var showTopMenu by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val isIncognito = tabState?.isIncognito == true
+    val currentUser by GoogleAuthManager.currentUser.collectAsState()
 
     LaunchedEffect(tabState?.displayUrl) {
         if (!isEditing) {
@@ -276,6 +290,122 @@ fun TopSearchBar(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                // Google Profile Picture Icon (Chrome UI style)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onProfileClick)
+                        .testTag("google_profile_icon"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!currentUser?.profilePictureUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = currentUser?.profilePictureUrl,
+                            contentDescription = "Google Account Profile",
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (currentUser != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = (currentUser?.displayName?.take(1) ?: "G").uppercase(),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Sign in to Google Account",
+                            tint = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+
+                // 3-Dot Settings Menu (Chrome UI style)
+                Box {
+                    IconButton(
+                        onClick = { showTopMenu = true },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("top_menu_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Browser Menu",
+                            tint = if (isIncognito) Color(0xFFA5B4FC) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showTopMenu,
+                        onDismissRequest = { showTopMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("New tab") },
+                            onClick = {
+                                showTopMenu = false
+                                onOpenNewTab()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("New incognito tab") },
+                            onClick = {
+                                showTopMenu = false
+                                onOpenNewIncognitoTab()
+                            }
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (currentUser != null) "Google Account (${currentUser?.displayName})"
+                                    else "Sync Google Account"
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.AccountCircle, contentDescription = null)
+                            },
+                            onClick = {
+                                showTopMenu = false
+                                onProfileClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Clear data & cookies") },
+                            onClick = {
+                                showTopMenu = false
+                                onClearData()
+                            }
+                        )
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text("Settings") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Settings, contentDescription = null)
+                            },
+                            onClick = {
+                                showTopMenu = false
+                                onOpenSettings()
+                            }
+                        )
+                    }
+                }
             }
 
             // Loading progress indicator
@@ -316,6 +446,7 @@ fun BrowserBottomBar(
     onOpenNewTab: () -> Unit,
     onOpenNewIncognitoTab: () -> Unit,
     onReload: () -> Unit,
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -538,6 +669,16 @@ fun BrowserBottomBar(
                             onClick = {
                                 showMenu = false
                                 onOpenFindInPage()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Settings") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Settings, contentDescription = null)
+                            },
+                            onClick = {
+                                showMenu = false
+                                onOpenSettings()
                             }
                         )
                     }

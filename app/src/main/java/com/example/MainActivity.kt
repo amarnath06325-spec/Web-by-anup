@@ -89,6 +89,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Initialize synced Google Account state
+        com.example.auth.GoogleAuthManager.init(this)
+
         // Handle URL from incoming Intent (e.g. opened from another app or default browser link)
         handleIncomingIntent(intent)
 

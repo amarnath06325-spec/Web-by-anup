@@ -136,7 +136,34 @@ fun BrowserScreen(
                 tabState = currentTab,
                 onLoadUrl = { viewModel.loadUrl(it) },
                 onReload = { viewModel.reload() },
-                onStopLoading = { viewModel.stopLoading() }
+                onStopLoading = { viewModel.stopLoading() },
+                onProfileClick = {
+                    val user = com.example.auth.GoogleAuthManager.currentUser.value
+                    if (user != null) {
+                        viewModel.showBanner("Signed in as ${user.displayName} (${user.email})")
+                    } else {
+                        scope.launch {
+                            val result = com.example.auth.GoogleAuthManager.signIn(context)
+                            if (result.isSuccess) {
+                                viewModel.showBanner("Google Account synced: ${result.getOrNull()?.displayName}")
+                            } else {
+                                viewModel.showBanner("Sign in: ${result.exceptionOrNull()?.message ?: "Select account from settings"}")
+                            }
+                        }
+                    }
+                },
+                onOpenSettings = {
+                    val intent = android.content.Intent(context, com.example.settings.SettingsActivity::class.java)
+                    context.startActivity(intent)
+                },
+                onOpenNewTab = { viewModel.addNewTab() },
+                onOpenNewIncognitoTab = { viewModel.openNewIncognitoTab() },
+                onClearData = {
+                    android.webkit.CookieManager.getInstance().removeAllCookies(null)
+                    android.webkit.CookieManager.getInstance().flush()
+                    android.webkit.WebStorage.getInstance().deleteAllData()
+                    viewModel.showBanner("Browsing data & cookies cleared")
+                }
             )
         },
         bottomBar = {
@@ -156,7 +183,11 @@ fun BrowserScreen(
                 onOpenFindInPage = { viewModel.openFindInPage() },
                 onOpenNewTab = { viewModel.addNewTab() },
                 onOpenNewIncognitoTab = { viewModel.openNewIncognitoTab() },
-                onReload = { viewModel.reload() }
+                onReload = { viewModel.reload() },
+                onOpenSettings = {
+                    val intent = android.content.Intent(context, com.example.settings.SettingsActivity::class.java)
+                    context.startActivity(intent)
+                }
             )
         },
         modifier = modifier.fillMaxSize()

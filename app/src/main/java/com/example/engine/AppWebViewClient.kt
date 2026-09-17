@@ -75,6 +75,11 @@ class AppWebViewClient(
         val isSecure = finalUrl.startsWith("https://", ignoreCase = true)
 
         onPageFinishedCallback(finalUrl, title, canGoBack, canGoForward, isSecure)
+
+        // Inject seamless Google auto-login helper if account is synced
+        if (view != null && finalUrl.isNotBlank() && !finalUrl.startsWith("chrome://")) {
+            com.example.auth.GoogleAutoLoginHelper.injectAutoLoginScript(context, view, finalUrl)
+        }
     }
 
     override fun onReceivedError(
